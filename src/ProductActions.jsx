@@ -21,8 +21,16 @@ export default function ProductActions({ product, onMove, onProductChange }) {
         if (!form.name.trim()) return;
         setBusy(true);
         if (!isSupabaseConfigured) {
+            await onProductChange({
+                id: product.id,
+                name: form.name.trim().toUpperCase(),
+                category: form.category.trim() || 'Sem categoria',
+                supplier: form.supplier.trim() || 'Sem fornecedor',
+                unit: form.unit.trim() || 'kg',
+                minStock: Number(form.minStock || 0)
+            });
             setBusy(false);
-            setFeedback('Configure o Supabase para editar produtos no banco.');
+            setEditing(false);
             return;
         }
         const { data: category, error: categoryError } = await supabase.from('categories').upsert({ name: form.category.trim() || 'Sem categoria' }, { onConflict: 'name' }).select('id').single();
@@ -38,7 +46,11 @@ export default function ProductActions({ product, onMove, onProductChange }) {
 
     const remove = async () => {
         if (!confirming) { setConfirming(true); return; }
-        if (!isSupabaseConfigured) { setFeedback('Configure o Supabase para excluir produtos do banco.'); return; }
+        if (!isSupabaseConfigured) {
+            setConfirming(false);
+            await onProductChange(product.id);
+            return;
+        }
         setBusy(true);
         const { error } = await supabase.from('products').update({ active: false, updated_at: new Date().toISOString() }).eq('id', product.id);
         setBusy(false);
