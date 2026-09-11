@@ -2,7 +2,7 @@ export async function persistMovement({ supabase, product, form, userId, perform
     const quantity = Number(form.quantity);
     const currentStock = Number(product.stock || 0);
     if (!Number.isFinite(quantity) || quantity <= 0) return { error: 'Informe uma quantidade válida.' };
-    if (form.type === 'saida' && quantity > currentStock) return { error: `A saída solicitada (${quantity}) é maior que o estoque atual (${currentStock}).` };
+    if (form.type === 'saida' && quantity > currentStock) return { error: `O consumo solicitado (${quantity}) é maior que o estoque atual (${currentStock}).` };
 
     const delta = form.type === 'entrada' ? quantity : form.type === 'saida' ? -quantity : quantity - currentStock;
     const nextStock = Math.max(0, currentStock + delta);

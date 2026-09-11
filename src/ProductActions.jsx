@@ -61,8 +61,7 @@ export default function ProductActions({ product, onMove, onProductChange }) {
 
     return <>
         <div className="actions">
-            <button onClick={() => onMove('entrada', product.id)}>Entrada</button>
-            <button onClick={() => onMove('saida', product.id)}>Saída</button>
+            {Number(product.stock || 0) > 0 && <button onClick={() => onMove('saida', product.id)}>Registrar consumo</button>}
             <button className="actionEdit" onClick={() => setEditing(true)} disabled={busy} title="Editar produto" aria-label={`Editar ${product.name}`}><Pencil size={15} /></button>
             <button className="actionDelete" onClick={remove} disabled={busy} title="Excluir produto" aria-label={`Excluir ${product.name}`}><Trash2 size={15} /></button>
         </div>
