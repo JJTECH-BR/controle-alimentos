@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
 
-export default function ProductActions({ product, onMove, onProductChange }) {
+export default function ProductActions({ product, onMove, onProductChange, onAudit }) {
     const [editing, setEditing] = useState(false);
     const [busy, setBusy] = useState(false);
     const [feedback, setFeedback] = useState('');
@@ -29,6 +29,7 @@ export default function ProductActions({ product, onMove, onProductChange }) {
                 unit: form.unit.trim() || 'kg',
                 minStock: Number(form.minStock || 0)
             });
+            await onAudit?.('Alterou produto', 'produto', product.id, `${product.name} → ${form.name.trim().toUpperCase()}`);
             setBusy(false);
             setEditing(false);
             return;
@@ -41,6 +42,7 @@ export default function ProductActions({ product, onMove, onProductChange }) {
         setBusy(false);
         if (error) { setFeedback(`Não foi possível editar o produto: ${error.message}`); return; }
         setEditing(false);
+        await onAudit?.('Alterou produto', 'produto', product.id, `${product.name} → ${form.name.trim().toUpperCase()}`);
         await onProductChange();
     };
 
@@ -48,6 +50,7 @@ export default function ProductActions({ product, onMove, onProductChange }) {
         if (!confirming) { setConfirming(true); return; }
         if (!isSupabaseConfigured) {
             setConfirming(false);
+            await onAudit?.('Excluiu produto', 'produto', product.id, product.name);
             await onProductChange(product.id);
             return;
         }
@@ -56,6 +59,7 @@ export default function ProductActions({ product, onMove, onProductChange }) {
         setBusy(false);
         if (error) { setFeedback(`Não foi possível excluir o produto: ${error.message}`); return; }
         setConfirming(false);
+        await onAudit?.('Excluiu produto', 'produto', product.id, product.name);
         await onProductChange();
     };
 
