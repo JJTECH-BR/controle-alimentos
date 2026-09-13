@@ -1,0 +1,59 @@
+html {
+    font-size: 105%;
+}
+
+body {
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.supplierEdit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 96px;
+    height: 38px;
+    padding: 8px 10px;
+}
+
+.periodNav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.periodNav button {
+    min-width: 110px;
+    padding: 9px 16px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--text);
+}
+
+.periodNav button.active {
+    border-color: var(--green);
+    background: var(--green);
+    color: #fff;
+}
+
+.supplierModal {
+    max-width: 520px;
+}
+
+.supplierItems {
+    display: grid;
+    gap: 8px;
+    margin: 18px 0;
+}
+
+.supplierItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+}

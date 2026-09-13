@@ -475,6 +475,11 @@ header p {
 }
 
 @media (max-width: 760px) {
+    .login {
+        width: 100%;
+        justify-items: center
+    }
+
     .dashboardHero {
         align-items: flex-start;
         flex-direction: column;
@@ -491,7 +496,9 @@ header p {
     }
 
     .loginCard {
-        width: min(420px, calc(100vw - 24px));
+        width: min(420px, 100%);
+        justify-self: center;
+        margin-inline: auto;
         padding: 28px 22px 24px
     }
 
