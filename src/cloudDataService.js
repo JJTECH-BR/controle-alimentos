@@ -35,7 +35,7 @@ export async function loadCloudDataFromSupabase(supabase, fallbackProducts = [])
         auditLogsError && 'atividade do sistema'
     ].filter(Boolean);
     return {
-        warning: failedReports.length ? `Não foi possível carregar: ${failedReports.join(', ')}. ${['42P01', 'PGRST205'].includes(auditLogsError?.code) ? 'Execute o supabase-schema.sql atualizado para criar a tabela de auditoria.' : 'Verifique as tabelas e as políticas RLS no Supabase.'}` : (normalizedProducts.length === 0 && fallbackProducts.length ? 'O banco está vazio; foi usado o catálogo local como base temporária.' : null),
+        warning: failedReports.length ? `Não foi possível carregar: ${failedReports.join(', ')}. ${['42P01', 'PGRST205'].includes(auditLogsError?.code) ? 'Execute o supabase-schema.sql atualizado para criar a tabela de auditoria.' : 'Verifique as tabelas e as políticas RLS no Supabase.'}` : null,
         data: {
             products: effectiveProducts,
             movements: movementsError ? [] : (movements || []).map(movement => ({ id: movement.id, date: movement.movement_date, time: new Date(movement.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), product: movement.products?.name || 'Produto removido', type: movement.type, quantity: Number(movement.quantity), delta: Number(movement.new_stock || 0) - Number(movement.previous_stock || 0), user: formatUserName(movement.performed_by), note: movement.note || '', supplier: movement.products?.suppliers?.name || '' })),
