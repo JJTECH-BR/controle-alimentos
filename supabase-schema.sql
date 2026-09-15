@@ -48,3 +48,15 @@ drop policy if exists "authenticated users can read audit logs" on audit_logs;
 create policy "authenticated users can read audit logs" on audit_logs for select to authenticated using (true);
 drop policy if exists "authenticated users can insert audit logs" on audit_logs;
 create policy "authenticated users can insert audit logs" on audit_logs for insert to authenticated with check (true);
+
+-- Habilita a entrega de alterações para todas as abas e usuários conectados.
+do $$
+begin
+	if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'categories') then alter publication supabase_realtime add table categories; end if;
+	if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'suppliers') then alter publication supabase_realtime add table suppliers; end if;
+	if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'products') then alter publication supabase_realtime add table products; end if;
+	if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'stock_movements') then alter publication supabase_realtime add table stock_movements; end if;
+	if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'orders') then alter publication supabase_realtime add table orders; end if;
+	if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'receipts') then alter publication supabase_realtime add table receipts; end if;
+	if not exists (select 1 from pg_publication_tables where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'audit_logs') then alter publication supabase_realtime add table audit_logs; end if;
+end $$;
