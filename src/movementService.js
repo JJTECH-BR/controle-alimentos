@@ -25,24 +25,23 @@ export async function persistMovement({ supabase, product, form, userId, perform
     };
 
     if (supabase) {
-        const { error: movementError } = await supabase.from('stock_movements').insert({
-            id: movement.id,
-            product_id: product.id,
-            type: form.type,
-            quantity,
-            previous_stock: currentStock,
-            new_stock: nextStock,
-            movement_date: movement.date,
-            note: movement.note,
-            unit_price: movement.unitValue,
-            document_number: movement.document,
-            user_id: userId || null,
-            performed_by: performedBy || 'Autor não informado'
+        const { data, error } = await supabase.rpc('register_stock_movement', {
+            p_movement_id: movement.id,
+            p_product_id: product.id,
+            p_type: form.type,
+            p_quantity: quantity,
+            p_movement_date: movement.date,
+            p_note: movement.note,
+            p_unit_price: movement.unitValue,
+            p_document_number: movement.document,
+            p_user_id: userId || null,
+            p_performed_by: performedBy || 'Autor não informado'
         });
-        if (movementError) return { error: movementError.message };
-
-        const { error: productError } = await supabase.from('products').update({ stock: nextStock, updated_at: new Date().toISOString() }).eq('id', product.id);
-        if (productError) return { error: productError.message };
+        if (error) return { error: error.message };
+        const result = Array.isArray(data) ? data[0] : data;
+        if (!result) return { error: 'O Supabase não retornou o resultado da movimentação.' };
+        movement.delta = Number(result.new_stock) - Number(result.previous_stock);
+        return { movement, nextStock: Number(result.new_stock) };
     }
 
     return { movement, nextStock };

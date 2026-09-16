@@ -102,3 +102,66 @@ body {
     .movementHistory div { grid-template-columns: 1fr auto; }
     .movementHistory em { grid-column: 2; }
 }
+
+.overlay {
+    overflow-y: auto;
+    align-items: start;
+    padding: clamp(12px, 3vw, 32px);
+}
+
+.modal {
+    width: min(100%, 620px);
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.attachmentField {
+    display: grid;
+    gap: 7px;
+    margin-top: 13px;
+    font-size: .85rem;
+    font-weight: 700;
+}
+
+.attachmentActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.attachmentField .attachmentRemove {
+    margin-top: 0;
+    border: 1px solid #f0b9bb;
+    background: #fff3f3;
+    color: #a1282b;
+}
+
+.attachmentField small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #718077;
+    font-weight: 500;
+    text-transform: none;
+}
+
+@media (max-width: 760px) {
+    aside { width: min(290px, 86vw); }
+    main { margin-left: 0; width: 100%; padding: 18px 14px 28px; }
+    header { align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    header > div:nth-child(2) { flex: 1 1 180px; }
+    .cards, .grid2 { grid-template-columns: 1fr; }
+    .toolbar, .panelHead { align-items: stretch; flex-wrap: wrap; gap: 12px; }
+    .toolbar > *, .toolbar .search, .toolbar .primary { width: 100%; }
+    .tableWrap { border-radius: 12px; }
+    .modal { border-radius: 12px; padding: 20px 16px 16px; }
+}
+
+@media (max-width: 480px) {
+    .overlay { padding: 8px; }
+    .modal { max-height: calc(100vh - 16px); padding: 18px 13px 14px; }
+    .modal h2 { padding-right: 30px; }
+    .two, .summaryStats, .monthlyGrid { grid-template-columns: 1fr; }
+    .attachmentActions button { flex: 1 1 100%; }
+}
