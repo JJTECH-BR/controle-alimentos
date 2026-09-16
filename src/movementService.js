@@ -2,7 +2,7 @@ export async function persistMovement({ supabase, product, form, userId, perform
     const quantity = Number(form.quantity);
     const currentStock = Number(product.stock || 0);
     if (!Number.isFinite(quantity) || quantity <= 0) return { error: 'Informe uma quantidade válida.' };
-    if (form.type === 'saida' && quantity > currentStock) return { error: `O consumo solicitado (${quantity}) é maior que o estoque atual (${currentStock}).` };
+    if (form.type === 'saida' && quantity > currentStock) return { error: `Quantidade indisponível. O saldo atual deste produto é de ${currentStock} ${product.unit || ''}.` };
 
     const delta = form.type === 'entrada' ? quantity : form.type === 'saida' ? -quantity : quantity - currentStock;
     const nextStock = Math.max(0, currentStock + delta);
@@ -16,7 +16,12 @@ export async function persistMovement({ supabase, product, form, userId, perform
         delta,
         user: performedBy || 'Autor não informado',
         note: form.note || '',
-        supplier: product.supplier
+        supplier: form.supplier || product.supplier,
+        productId: product.id,
+        unitValue: Number(form.unitValue || 0),
+        totalValue: Number(form.totalValue || 0),
+        document: form.document || '',
+        attachment: form.attachment || null
     };
 
     if (supabase) {
@@ -29,6 +34,8 @@ export async function persistMovement({ supabase, product, form, userId, perform
             new_stock: nextStock,
             movement_date: movement.date,
             note: movement.note,
+            unit_price: movement.unitValue,
+            document_number: movement.document,
             user_id: userId || null,
             performed_by: performedBy || 'Autor não informado'
         });

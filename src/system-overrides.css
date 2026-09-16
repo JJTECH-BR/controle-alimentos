@@ -57,3 +57,48 @@ body {
     border: 1px solid var(--line);
     border-radius: 8px;
 }
+
+.balanceToolbar { margin-top: 8px; }
+.balanceFilters { display: flex; align-items: end; gap: 12px; margin-bottom: 16px; }
+.balanceFilters label { flex: 1; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+.balanceFilters button { white-space: nowrap; }
+.balanceCards .card strong { font-size: 1.35rem; }
+.tableWrap .clickable { cursor: pointer; }
+.tableWrap .clickable:hover { background: #f5faf7; }
+.tableWrap td small { display: block; color: #718077; font-size: .72rem; margin-top: 3px; }
+.balanceStatus { display: inline-flex; padding: 5px 9px; border-radius: 999px; background: #e8f5ed; color: var(--green); font-size: .72rem; font-style: normal; font-weight: 700; }
+.balanceStatus.baixo { background: #fff5d7; color: #8a6500; }
+.balanceStatus.esgotado { background: #fde8e8; color: #a1282b; }
+.balanceFilters select { min-width: 170px; }
+.productSummary { margin-bottom: 16px; }
+.summaryStats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 18px 0; }
+.summaryStats span, .monthlyGrid div { display: grid; gap: 5px; color: #718077; font-size: .78rem; }
+.summaryStats b, .monthlyGrid strong { color: var(--text); font-size: 1.05rem; }
+.movementHistory { border-top: 1px solid var(--line); padding-top: 14px; }
+.movementHistory h3 { font-size: .9rem; margin: 0 0 8px; }
+.movementHistory div { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; padding: 9px 0; border-bottom: 1px solid #eef2ef; font-size: .8rem; }
+.movementHistory em { color: #718077; font-style: normal; }
+.monthlyPanel { margin-top: 16px; }
+.monthlyGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
+.monthlyGrid div { padding: 14px; background: #f5faf7; border-radius: 10px; }
+.monthlyGrid small { color: #718077; }
+.calculated { padding: 11px 12px; background: #f5faf7; border-radius: 8px; margin-bottom: 12px; font-size: .82rem; }
+.balanceModal { max-width: 560px; }
+.balanceModal > label { display: block; margin-bottom: 12px; }
+.balanceModal > label select, .balanceModal > label input, .balanceModal > label textarea { margin-top: 6px; }
+.balanceModal .attachmentField { font-size: 0; }
+.balanceModal .attachmentField button { margin-top: 6px; }
+.balanceModal .attachmentField button, .balanceModal .attachmentField small { font-size: .82rem; }
+.balanceModal .attachmentField input[type='file'] { display: none; }
+.balanceModal .attachmentField small { display: block; margin-top: 5px; color: #718077; text-transform: none; }
+@media (max-width: 850px) {
+    .balanceFilters { align-items: stretch; flex-wrap: wrap; }
+    .balanceFilters label { min-width: 220px; }
+    .summaryStats { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 560px) {
+    .balanceFilters label, .balanceFilters button { width: 100%; }
+    .summaryStats, .monthlyGrid { grid-template-columns: repeat(2, 1fr); }
+    .movementHistory div { grid-template-columns: 1fr auto; }
+    .movementHistory em { grid-column: 2; }
+}
