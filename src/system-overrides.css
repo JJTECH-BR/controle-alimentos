@@ -71,6 +71,9 @@ body {
 .balanceStatus.esgotado { background: #fde8e8; color: #a1282b; }
 .balanceFilters select { min-width: 170px; }
 .productSummary { margin-bottom: 16px; }
+.summaryActions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.summaryActions button { min-width: 112px; padding: 10px 18px; }
+.summaryActions .actionDelete { border: 1px solid #f0b9bb; background: #fff3f3; color: #a1282b; }
 .summaryStats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin: 18px 0; }
 .summaryStats span, .monthlyGrid div { display: grid; gap: 5px; color: #718077; font-size: .78rem; }
 .summaryStats b, .monthlyGrid strong { color: var(--text); font-size: 1.05rem; }
