@@ -28,7 +28,12 @@ export async function loadCloudDataFromSupabase(supabase, fallbackProducts = [])
     if (productsError) return { error: `Produtos: ${productsError.message}` };
 
     const normalizedProducts = (products || []).map(product => ({ ...product, category: product.categories?.name || 'Sem categoria', supplier: product.suppliers?.name || 'Sem fornecedor', minStock: Number(product.min_stock || 0), stock: Number(product.stock || 0), unit: product.unit || 'un' }));
-    const effectiveProducts = normalizedProducts.length ? normalizedProducts : fallbackProducts;
+    const knownNames = new Set(normalizedProducts.map(product => normalizeProductName(product.name)));
+    const nextId = normalizedProducts.reduce((max, product) => Math.max(max, Number(product.id) || 0), 0) + 1;
+    const missingCatalogProducts = fallbackProducts
+        .filter(product => !knownNames.has(normalizeProductName(product.name)))
+        .map((product, index) => ({ ...product, id: nextId + index }));
+    const effectiveProducts = [...normalizedProducts, ...missingCatalogProducts];
 
     const failedReports = [
         movementsError && 'movimentações',
@@ -40,10 +45,14 @@ export async function loadCloudDataFromSupabase(supabase, fallbackProducts = [])
         warning: failedReports.length ? `Não foi possível carregar: ${failedReports.join(', ')}. ${['42P01', 'PGRST205'].includes(auditLogsError?.code) ? 'Execute o supabase-schema.sql atualizado para criar a tabela de auditoria.' : 'Verifique as tabelas e as políticas RLS no Supabase.'}` : null,
         data: {
             products: effectiveProducts,
-            movements: movementsError ? [] : (movements || []).map(movement => ({ id: movement.id, productId: movement.product_id, date: movement.movement_date, time: new Date(movement.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), product: movement.products?.name || 'Produto removido', type: movement.type, quantity: Number(movement.quantity), delta: Number(movement.new_stock || 0) - Number(movement.previous_stock || 0), user: formatUserName(movement.performed_by), note: movement.note || '', supplier: movement.products?.suppliers?.name || '', unitValue: Number(movement.unit_price || 0), totalValue: Number(movement.quantity || 0) * Number(movement.unit_price || 0), document: movement.document_number || '' })),
+            movements: movementsError ? [] : await Promise.all((movements || []).map(async movement => ({ id: movement.id, productId: movement.product_id, date: movement.movement_date, time: new Date(movement.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), product: movement.products?.name || 'Produto removido', type: movement.type, quantity: Number(movement.quantity), delta: Number(movement.new_stock || 0) - Number(movement.previous_stock || 0), user: formatUserName(movement.performed_by), note: movement.note || '', supplier: movement.products?.suppliers?.name || '', unitValue: Number(movement.unit_price || 0), totalValue: Number(movement.quantity || 0) * Number(movement.unit_price || 0), document: movement.document_number || '', attachmentPath: movement.attachment_path || '', attachmentName: movement.attachment_name || '', attachmentUrl: movement.attachment_path ? (await supabase.storage.from('movement-attachments').createSignedUrl(movement.attachment_path, 3600)).data?.signedUrl || '' : '' })) ),
             orders: ordersError ? [] : (orders || []).map(order => ({ product: order.products?.name || 'Produto não identificado', ordered: Number(order.ordered_quantity || 0), receipts: (order.receipts || []).map(receipt => [receipt.receipt_date, Number(receipt.quantity || 0)]) })),
             auditLogs: auditLogsError ? [] : (auditLogs || []).map(log => ({ id: log.id, date: log.created_at?.slice(0, 10), time: log.created_at ? new Date(log.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '', user: formatUserName(log.performed_by), action: log.action, entityType: log.entity_type, entityId: log.entity_id, details: log.details || '' })),
             contracts: contractsError ? [] : (contracts || []).map(contract => ({ id: contract.id, productId: contract.product_id, productName: contract.products?.name || '', supplier: contract.suppliers?.name || '', unit: contract.products?.unit || 'un', ordered: Number(contract.ordered_quantity || 0), unitValue: Number(contract.unit_price || 0), contractDate: contract.contract_date || '', note: contract.note || '' }))
         }
     };
+}
+
+function normalizeProductName(value) {
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 }

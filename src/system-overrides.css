@@ -81,6 +81,15 @@ body {
 .movementHistory h3 { font-size: .9rem; margin: 0 0 8px; }
 .movementHistory div { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; padding: 9px 0; border-bottom: 1px solid #eef2ef; font-size: .8rem; }
 .movementHistory em { color: #718077; font-style: normal; }
+.movementHistory .attachmentActions,
+.movement .attachmentActions { grid-column: 1 / -1; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 3px; }
+.movementHistory .attachmentActions a,
+.movement .attachmentActions a { display: inline-flex; align-items: center; padding: 7px 11px; border: 1px solid #b8e3c9; border-radius: 7px; background: #f1fbf5; color: var(--green); font-size: .74rem; font-weight: 700; text-decoration: none; }
+.movementHistory .attachmentActions .actionDelete,
+.movement .attachmentActions .actionDelete { min-height: 32px; padding: 7px 11px; border: 1px solid #f0b9bb; border-radius: 7px; background: #fff3f3; color: #a1282b; font-size: .74rem; font-weight: 700; }
+.movementHistory .attachmentActions a:hover { background: #e5f7ec; }
+.movementHistory .attachmentActions .actionDelete:hover,
+.movement .attachmentActions .actionDelete:hover { background: #fde8e8; }
 .monthlyPanel { margin-top: 16px; }
 .monthlyGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px; }
 .monthlyGrid div { padding: 14px; background: #f5faf7; border-radius: 10px; }

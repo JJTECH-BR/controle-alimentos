@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import DateInput from './DateInput';
 
 const CATEGORY_OPTIONS = ['Alimentos Secos', 'Carnes', 'Hortifruti', 'Laticínios'];
 const SUPPLIER_OPTIONS = ['AGROVIDA', 'COOPAFASP', 'AGUA PRETA', 'DA TERRA', 'ELCILAINE', 'FRANCISCO', 'LUIZ RAFAEL', 'MAURICIO', 'MARCIA CORREA', 'REGINALDO', 'PEDRO GERALDO', 'HORÁCIO', 'CCF NUTRI', 'FEC', 'FRIGOBOI', 'MERCADO CENTRAL', 'SENGÉS', 'STS', 'DA ROÇA', 'QUITANDA FRUTASOL'];
@@ -44,7 +45,7 @@ export default function ProductModal({ modal, products, onClose, onSave, onAddPr
                         <label>Produto<select value={String(form.productId || '')} onChange={event => change('productId', event.target.value)} disabled={!products.length}><option value="">Selecione um produto</option>{products.map(product => <option key={product.id} value={String(product.id)}>{product.name}</option>)}</select></label>
                         <div className="two">
                             <label>Quantidade consumida<input type="number" min="0" value={form.quantity} onChange={event => change('quantity', event.target.value)} /></label>
-                            <label>Data<input type="date" value={form.date} onChange={event => change('date', event.target.value)} /></label>
+                            <label>Data<DateInput value={form.date} onChange={value => change('date', value)} /></label>
                         </div>
                         <label>Observação<textarea value={form.note} onChange={event => change('note', event.target.value)} placeholder="Ex.: refeição, turma ou destino" /></label>
                         <button className="primary full" onClick={() => form.productId && Number(form.quantity) > 0 && onSave({ ...form, type: 'saida' })}>Registrar consumo</button>

@@ -16,7 +16,7 @@ A versão entregue funciona localmente para testar o fluxo e grava os dados no n
 4. Reinicie o servidor Vite para carregar as variáveis.
 5. Cadastre os produtos, categorias e fornecedores no banco (ou importe-os pelo Table Editor).
 
-O script SQL também cria a função transacional usada para registrar movimentações. Execute o arquivo novamente sempre que essa função for atualizada; sem ela, o frontend não conseguirá salvar novas entradas ou saídas no modo Supabase.
+O script SQL também cria a função transacional usada para registrar movimentações e o bucket privado `movement-attachments` usado para fotos e PDFs. Execute o arquivo novamente para criar o bucket, as políticas e atualizar o cache de schema da API. O frontend mantém uma compatibilidade temporária para concluir o registro caso a função ainda não tenha sido publicada.
 
 Nunca use a `service_role key` no front-end. A chave anon é segura para o navegador somente com RLS configurado.
 
