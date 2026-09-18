@@ -93,7 +93,10 @@ body {
 .reportTable table { width: 100%; border-collapse: collapse; font-size: .82rem; }
 .reportTable th, .reportTable td { border-bottom: 1px solid var(--line); padding: 9px 7px; text-align: left; }
 .reportTable th { color: #718077; font-size: .72rem; text-transform: uppercase; }
-body.printing-report .app { display: none; }
+body.printing-report aside,
+body.printing-report header,
+body.printing-report main > :not(.reportOverlay) { display: none; }
+body.printing-report main { margin: 0; width: 100%; max-width: none; padding: 0; }
 body.printing-report .reportOverlay { display: block; position: static; background: #fff; padding: 0; }
 body.printing-report .reportModal { max-width: none; width: 100%; border: 0; box-shadow: none; padding: 0; }
 body.printing-report .reportModal > .close, body.printing-report .reportControls, body.printing-report .reportActions { display: none; }
