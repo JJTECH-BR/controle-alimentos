@@ -62,6 +62,8 @@ body {
 .balanceFilters { display: flex; align-items: end; gap: 12px; margin-bottom: 16px; }
 .balanceFilters label { flex: 1; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
 .balanceFilters button { white-space: nowrap; }
+.balanceActions { display: flex; flex: 1.8; min-width: 0; gap: 10px; }
+.balanceActions button { flex: 1; min-width: 0; justify-content: center; }
 .balanceCards .card strong { font-size: 1.35rem; }
 .tableWrap .clickable { cursor: pointer; }
 .tableWrap .clickable:hover { background: #f5faf7; }
@@ -70,6 +72,32 @@ body {
 .balanceStatus.baixo { background: #fff5d7; color: #8a6500; }
 .balanceStatus.esgotado { background: #fde8e8; color: #a1282b; }
 .balanceFilters select { min-width: 170px; }
+.reportModal { max-width: 980px; width: min(980px, calc(100vw - 32px)); }
+.reportControls { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; margin-bottom: 18px; }
+.reportOptions { display: flex; gap: 10px; }
+.reportOptions label { min-width: 150px; }
+.reportOptions select { margin-top: 6px; }
+.reportActions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+.reportPrint { border-top: 1px solid var(--line); padding-top: 18px; }
+.reportHeading { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid var(--dark); padding-bottom: 14px; }
+.reportHeading span { color: var(--green); font-size: .72rem; font-weight: 800; letter-spacing: .08em; }
+.reportHeading h1 { font-size: 1.5rem; margin: 5px 0; }
+.reportHeading p { margin: 0; }
+.reportHeading strong { color: var(--dark); }
+.reportStats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+.reportStats div { background: #f4f7f5; border: 1px solid var(--line); padding: 12px; }
+.reportStats span, .reportStats small { display: block; color: #718077; font-size: .78rem; }
+.reportStats b { display: block; font-size: 1.3rem; margin: 4px 0; }
+.reportTable { overflow-x: auto; }
+.reportTable table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.reportTable th, .reportTable td { border-bottom: 1px solid var(--line); padding: 9px 7px; text-align: left; }
+.reportTable th { color: #718077; font-size: .72rem; text-transform: uppercase; }
+body.printing-report .app { display: none; }
+body.printing-report .reportOverlay { display: block; position: static; background: #fff; padding: 0; }
+body.printing-report .reportModal { max-width: none; width: 100%; border: 0; box-shadow: none; padding: 0; }
+body.printing-report .reportModal > .close, body.printing-report .reportControls, body.printing-report .reportActions { display: none; }
+body.printing-report .reportPrint { border: 0; padding: 0; }
+@media print { body.printing-report { background: #fff; } body.printing-report .reportHeading { margin-top: 0; } }
 .productSummary { margin-bottom: 16px; }
 .summaryActions { display: flex; align-items: center; gap: 12px; margin-left: auto; }
 .summaryActions button { min-width: 112px; padding: 10px 18px; }
@@ -106,10 +134,17 @@ body {
 @media (max-width: 850px) {
     .balanceFilters { align-items: stretch; flex-wrap: wrap; }
     .balanceFilters label { min-width: 220px; }
+    .balanceActions { width: 100%; flex-basis: 100%; }
+    .reportControls { flex-direction: column; }
+    .reportOptions { width: 100%; }
+    .reportOptions label { flex: 1; }
     .summaryStats { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 560px) {
-    .balanceFilters label, .balanceFilters button { width: 100%; }
+    .balanceFilters label, .balanceActions, .balanceActions button { width: 100%; }
+    .balanceActions { flex-direction: column; }
+    .reportOptions, .reportActions { flex-direction: column; }
+    .reportOptions label, .reportActions button { width: 100%; }
     .summaryStats, .monthlyGrid { grid-template-columns: repeat(2, 1fr); }
     .movementHistory div { grid-template-columns: 1fr auto; }
     .movementHistory em { grid-column: 2; }
