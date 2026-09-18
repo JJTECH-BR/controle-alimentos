@@ -7,9 +7,11 @@ const today = new Date().toISOString().slice(0, 10);
 const money = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
 const number = value => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(Number(value || 0));
 const formatDate = value => { const parts = String(value || '').slice(0, 10).split('-'); return parts.length === 3 && parts[0].length === 4 ? `${parts[2]}/${parts[1]}/${parts[0]}` : value || ''; };
+const uniqueProducts = items => { const seen = new Set(); return items.filter(item => { const name = String(item.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase(); if (!name || seen.has(name)) return false; seen.add(name); return true; }); };
 const emptyContract = product => ({ productId: product?.id || '', ordered: '', unitValue: '', contractDate: today, note: '' });
 
 export default function SaldoControl({ products, movements, contracts, onContract, onMovement, onEditContract, onDeleteContract, onDeleteAttachment }) {
+    const availableProducts = useMemo(() => uniqueProducts(products), [products]);
     const [selectedProduct, setSelectedProduct] = useState('');
     const [month, setMonth] = useState(today.slice(0, 7));
     const [modal, setModal] = useState(null);
@@ -19,10 +21,10 @@ export default function SaldoControl({ products, movements, contracts, onContrac
     useEffect(() => {
         document.querySelectorAll('.balanceModal input[type="date"]').forEach(input => input.setAttribute('lang', 'pt-BR'));
     }, [modal]);
-    const product = products.find(item => String(item.id) === String(selectedProduct));
+    const product = availableProducts.find(item => String(item.id) === String(selectedProduct));
     const contract = contracts.find(item => Number(item.productId) === Number(selectedProduct));
     const balance = contract ? calculateBalance(contract, movements) : null;
-    const controlled = products.map(item => {
+    const controlled = availableProducts.map(item => {
         const itemContract = contracts.find(row => Number(row.productId) === Number(item.id));
         return itemContract ? { product: item, contract: itemContract, balance: calculateBalance(itemContract, movements) } : null;
     }).filter(Boolean);
@@ -36,14 +38,14 @@ export default function SaldoControl({ products, movements, contracts, onContrac
     const reportRange = useMemo(() => getReportRange(reportPeriod), [reportPeriod]);
     const reportMovements = useMemo(() => movements.filter(item => {
         const movementDate = String(item.date || '').slice(0, 10);
-        const selectedName = products.find(row => Number(row.id) === Number(reportProduct))?.name;
+        const selectedName = availableProducts.find(row => Number(row.id) === Number(reportProduct))?.name;
         const matchesProduct = !reportProduct || Number(item.productId) === Number(reportProduct) || item.product === selectedName;
         return movementDate >= reportRange.start && movementDate <= reportRange.end && matchesProduct;
     }), [movements, products, reportProduct, reportRange]);
-    const reportProductName = reportProduct ? products.find(item => Number(item.id) === Number(reportProduct))?.name : 'Todos os produtos';
-    const openMovement = type => setModal({ type, productId: selectedProduct || products[0]?.id });
+    const reportProductName = reportProduct ? availableProducts.find(item => Number(item.id) === Number(reportProduct))?.name : 'Todos os produtos';
+    const openMovement = type => setModal({ type, productId: selectedProduct || availableProducts[0]?.id });
     const openContractModal = (productId, existingContract = null) => {
-        const currentProduct = products.find(item => Number(item.id) === Number(productId));
+        const currentProduct = availableProducts.find(item => Number(item.id) === Number(productId));
         if (!currentProduct) return;
         setModal({
             type: 'contract',
@@ -69,18 +71,18 @@ export default function SaldoControl({ products, movements, contracts, onContrac
         </section>
         <div className="balanceToolbar toolbar">
             <div><h2>Controle de saldo interno</h2><p>Contratos, recebimentos e consumo usando os mesmos produtos do estoque.</p></div>
-            <button className="primary" onClick={() => openContractModal(product?.id || products[0]?.id)}><Plus size={18} /> Novo contrato</button>
+            <button className="primary" onClick={() => openContractModal(product?.id || availableProducts[0]?.id)}><Plus size={18} /> Novo contrato</button>
         </div>
         <div className="balanceFilters panel">
-            <label>Produto<select value={selectedProduct} onChange={event => setSelectedProduct(event.target.value)}><option value="">Todos os produtos</option>{products.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
+            <label>Produto<select value={selectedProduct} onChange={event => setSelectedProduct(event.target.value)}><option value="">Todos os produtos</option>{availableProducts.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
             <label>Mês<select value={month} onChange={event => setMonth(event.target.value)}>{months().map(item => <option key={item} value={item}>{item.split('-').reverse().join('/')}</option>)}</select></label>
             <div className="balanceActions"><button className="secondary" onClick={() => openMovement('entrada')}><TrendingUp size={17} /> Registrar entrada</button><button className="secondary" onClick={() => openMovement('saida')}><TrendingDown size={17} /> Saída semanal</button><button className="primary" onClick={() => setReportOpen(true)}><FileText size={17} /> Relatório</button></div>
         </div>
         {selectedProduct && product && <ProductSummary product={product} contract={contract} balance={balance} movements={movements} onEditContract={handleEditContract} onDeleteContract={onDeleteContract} onDeleteAttachment={onDeleteAttachment} />}
         {!selectedProduct && <div className="panel tableWrap"><table><thead><tr><th>Produto</th><th>Licitado</th><th>Recebido</th><th>Utilizado</th><th>Disponível</th><th>A receber</th><th>Status</th></tr></thead><tbody>{controlled.map(row => <BalanceRow key={row.product.id} {...row} onSelect={() => setSelectedProduct(String(row.product.id))} />)}</tbody></table>{!controlled.length && <div className="empty">Cadastre um contrato para começar o acompanhamento. Hortifruti pode ser lançado diretamente como entrada.</div>}</div>}
         <section className="panel monthlyPanel"><div className="panelHead"><div><h2>Visão mensal</h2><p>O saldo é acumulado entre os meses e não é zerado.</p></div><CalendarDays size={20} /></div><div className="monthlyGrid"><div><span>Entradas no mês</span><strong>{number(monthly.entries.reduce((sum, item) => sum + Number(item.quantity || 0), 0))}</strong><small>{money(monthly.entries.reduce((sum, item) => sum + Number(item.totalValue || 0), 0))}</small></div><div><span>Saídas no mês</span><strong>{number(monthly.exits.reduce((sum, item) => sum + Number(item.quantity || 0), 0))}</strong><small>{money(monthly.exits.reduce((sum, item) => sum + Number(item.totalValue || 0), 0))}</small></div><div><span>Saldo atual</span><strong>{number(product?.stock || controlled.reduce((sum, row) => sum + row.balance.available, 0))}</strong><small>acumulado</small></div></div></section>
-        {reportOpen && <ReportModal period={reportPeriod} setPeriod={setReportPeriod} productId={reportProduct} setProductId={setReportProduct} products={products} productName={reportProductName} range={reportRange} movements={reportMovements} onClose={() => setReportOpen(false)} />}
-        {modal && <BalanceModal modal={modal} products={products} product={product} onClose={() => setModal(null)} onContract={async form => { if (await onContract(form)) setModal(null); }} onMovement={async form => { if (await onMovement(form)) setModal(null); }} />}
+        {reportOpen && <ReportModal period={reportPeriod} setPeriod={setReportPeriod} productId={reportProduct} setProductId={setReportProduct} products={availableProducts} productName={reportProductName} range={reportRange} movements={reportMovements} onClose={() => setReportOpen(false)} />}
+        {modal && <BalanceModal modal={modal} products={availableProducts} product={product} onClose={() => setModal(null)} onContract={async form => { if (await onContract(form)) setModal(null); }} onMovement={async form => { if (await onMovement(form)) setModal(null); }} />}
     </>;
 }
 

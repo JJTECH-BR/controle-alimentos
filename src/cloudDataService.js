@@ -33,7 +33,7 @@ export async function loadCloudDataFromSupabase(supabase, fallbackProducts = [])
     const missingCatalogProducts = fallbackProducts
         .filter(product => !knownNames.has(normalizeProductName(product.name)))
         .map((product, index) => ({ ...product, id: nextId + index }));
-    const effectiveProducts = [...normalizedProducts, ...missingCatalogProducts];
+    const effectiveProducts = uniqueProducts([...normalizedProducts, ...missingCatalogProducts]);
 
     const failedReports = [
         movementsError && 'movimentações',
