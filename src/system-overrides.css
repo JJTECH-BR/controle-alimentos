@@ -71,6 +71,7 @@ body {
 .balanceStatus { display: inline-flex; padding: 5px 9px; border-radius: 999px; background: #e8f5ed; color: var(--green); font-size: .72rem; font-style: normal; font-weight: 700; }
 .balanceStatus.baixo { background: #fff5d7; color: #8a6500; }
 .balanceStatus.esgotado { background: #fde8e8; color: #a1282b; }
+.balanceStatus.aguardando-recebimento { background: #fff5d7; color: #8a6500; }
 .balanceFilters select { min-width: 170px; }
 .reportModal { max-width: 980px; width: min(980px, calc(100vw - 32px)); }
 .reportControls { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; margin-bottom: 18px; }
