@@ -66,14 +66,10 @@ function App() {
     if (isSupabaseConfigured) {
       const session = (await supabase.auth.getSession()).data.session;
       let productId = Number(product.id);
-      let { data: existingProduct, error: productLookupError } = await supabase.from('products').select('id, supplier_id, active').eq('id', productId).maybeSingle();
-      if (productLookupError) { notify('Não foi possível verificar o produto no banco: ' + productLookupError.message, 'error'); return false; }
-      if (!existingProduct) {
-        const byName = await supabase.from('products').select('id, supplier_id, active').eq('name', product.name).maybeSingle();
-        if (byName.error) { notify('Não foi possível localizar o produto pelo nome: ' + byName.error.message, 'error'); return false; }
-        existingProduct = byName.data;
-        if (existingProduct) productId = Number(existingProduct.id);
-      }
+      const byName = await supabase.from('products').select('id, supplier_id, active').eq('name', product.name).maybeSingle();
+      if (byName.error) { notify('Não foi possível localizar o produto pelo nome: ' + byName.error.message, 'error'); return false; }
+      let existingProduct = byName.data;
+      if (existingProduct) productId = Number(existingProduct.id);
       const categoryName = (product.category || 'Sem categoria').trim() || 'Sem categoria';
       const supplierName = (product.supplier || 'Sem fornecedor').trim() || 'Sem fornecedor';
       const { data: categoryRow, error: categoryError } = await supabase.from('categories').upsert({ name: categoryName }, { onConflict: 'name' }).select('id').single();
