@@ -89,20 +89,21 @@ export async function deleteMovementAttachment(supabase, movement) {
 }
 
 async function ensureProductInSupabase(supabase, product) {
+    const supplierName = product.supplier || 'Sem fornecedor';
+    const { data: supplier, error: supplierError } = await supabase.from('suppliers').upsert({ name: supplierName }, { onConflict: 'name' }).select('id').single();
+    if (supplierError) return { error: `Não foi possível salvar o fornecedor: ${supplierError.message}` };
     const { data: existing, error: lookupError } = await supabase
         .from('products')
         .select('id, stock, unit, suppliers(name)')
         .eq('name', product.name)
+        .eq('supplier_id', supplier.id)
         .maybeSingle();
     if (lookupError) return { error: `Não foi possível consultar o produto: ${lookupError.message}` };
     if (existing) return { product: existing };
 
     const categoryName = product.category || 'Sem categoria';
-    const supplierName = product.supplier || 'Sem fornecedor';
     const { data: category, error: categoryError } = await supabase.from('categories').upsert({ name: categoryName }, { onConflict: 'name' }).select('id').single();
     if (categoryError) return { error: `Não foi possível salvar a categoria: ${categoryError.message}` };
-    const { data: supplier, error: supplierError } = await supabase.from('suppliers').upsert({ name: supplierName }, { onConflict: 'name' }).select('id').single();
-    if (supplierError) return { error: `Não foi possível salvar o fornecedor: ${supplierError.message}` };
     const { data: created, error: createError } = await supabase.from('products').insert({ name: product.name, category_id: category.id, supplier_id: supplier.id, unit: product.unit || 'kg', stock: Number(product.stock || 0), min_stock: Number(product.minStock || 10), active: true }).select('id, stock, unit, suppliers(name)').single();
     return createError ? { error: `Não foi possível sincronizar o produto: ${createError.message}` } : { product: created };
 }

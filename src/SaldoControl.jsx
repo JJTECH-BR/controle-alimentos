@@ -7,7 +7,7 @@ const today = new Date().toISOString().slice(0, 10);
 const money = value => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value || 0));
 const number = value => new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(Number(value || 0));
 const formatDate = value => { const parts = String(value || '').slice(0, 10).split('-'); return parts.length === 3 && parts[0].length === 4 ? `${parts[2]}/${parts[1]}/${parts[0]}` : value || ''; };
-const uniqueProducts = items => { const seen = new Set(); return items.filter(item => { const name = String(item.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase(); if (!name || seen.has(name)) return false; seen.add(name); return true; }); };
+const uniqueProducts = items => { const seen = new Set(); return items.filter(item => { const name = String(item.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase(); const supplier = String(item.supplier || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase(); const key = `${name}::${supplier}`; if (!name || seen.has(key)) return false; seen.add(key); return true; }); };
 const emptyContract = product => ({ productId: product?.id || '', ordered: '', unitValue: '', contractDate: today, note: '' });
 
 export default function SaldoControl({ products, movements, contracts, onContract, onMovement, onEditContract, onDeleteContract, onDeleteAttachment }) {

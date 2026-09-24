@@ -29,10 +29,10 @@ export async function loadCloudDataFromSupabase(supabase, fallbackProducts = [])
     if (productsError) return { error: `Produtos: ${productsError.message}` };
 
     const normalizedProducts = uniqueProducts((products || []).map(product => ({ ...product, category: product.categories?.name || 'Sem categoria', supplier: product.suppliers?.name || 'Sem fornecedor', minStock: Number(product.min_stock || 0), stock: Number(product.stock || 0), unit: product.unit || 'un' })));
-    const knownNames = new Set(normalizedProducts.map(product => normalizeProductName(product.name)));
+    const knownNames = new Set(normalizedProducts.map(productKey));
     const nextId = normalizedProducts.reduce((max, product) => Math.max(max, Number(product.id) || 0), 0) + 1;
     const missingCatalogProducts = fallbackProducts
-        .filter(product => !knownNames.has(normalizeProductName(product.name)))
+        .filter(product => !knownNames.has(productKey(product)))
         .map((product, index) => ({ ...product, id: nextId + index }));
     const effectiveProducts = uniqueProducts([...normalizedProducts, ...missingCatalogProducts]);
 
@@ -60,12 +60,16 @@ function normalizeProductName(value) {
     return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
 }
 
+function productKey(product) {
+    return `${normalizeProductName(product.name)}::${normalizeProductName(product.supplier)}`;
+}
+
 function uniqueProducts(products = []) {
     const seen = new Set();
     return products.filter(product => {
-        const name = normalizeProductName(product.name);
-        if (!name || seen.has(name)) return false;
-        seen.add(name);
+        const key = productKey(product);
+        if (!normalizeProductName(product.name) || seen.has(key)) return false;
+        seen.add(key);
         return true;
     });
 }
