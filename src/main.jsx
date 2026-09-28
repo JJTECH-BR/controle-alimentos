@@ -66,30 +66,8 @@ function App() {
     if (!contract.ordered || contract.ordered < 0) { notify('Informe uma quantidade licitada válida.', 'error'); return false; }
     if (isSupabaseConfigured) {
       const session = (await supabase.auth.getSession()).data.session;
-      let productId = Number(product.id);
-      const categoryName = (product.category || 'Sem categoria').trim() || 'Sem categoria';
-      const supplierName = (product.supplier || 'Sem fornecedor').trim() || 'Sem fornecedor';
-      const { data: categoryRow, error: categoryError } = await supabase.from('categories').upsert({ name: categoryName }, { onConflict: 'name' }).select('id').single();
-      if (categoryError) { notify('Não foi possível salvar a categoria do produto: ' + categoryError.message, 'error'); return false; }
-      const { data: supplierRow, error: supplierError } = await supabase.from('suppliers').upsert({ name: supplierName }, { onConflict: 'name' }).select('id').single();
-      if (supplierError) { notify('Não foi possível salvar o fornecedor do produto: ' + supplierError.message, 'error'); return false; }
-      const bySupplier = await supabase.from('products').select('id, supplier_id, active').eq('name', product.name).eq('supplier_id', supplierRow.id).maybeSingle();
-      if (bySupplier.error) { notify('Não foi possível localizar o produto e fornecedor: ' + bySupplier.error.message, 'error'); return false; }
-      let existingProduct = bySupplier.data;
-      if (existingProduct) productId = Number(existingProduct.id);
-      let supplierId = existingProduct?.supplier_id ?? supplierRow.id;
-      if (existingProduct) {
-        const { error: updateProductError } = await supabase.from('products').update({ category_id: categoryRow.id, supplier_id: supplierRow.id, unit: product.unit || 'kg', min_stock: Number(product.minStock || 10), active: true, updated_at: new Date().toISOString() }).eq('id', productId);
-        if (updateProductError) { notify('Não foi possível reativar o produto antes do contrato: ' + updateProductError.message, 'error'); return false; }
-        supplierId = supplierRow.id;
-      } else {
-        const { data: createdProduct, error: createProductError } = await supabase.from('products').insert({ name: product.name, category_id: categoryRow.id, supplier_id: supplierRow.id, unit: product.unit || 'kg', stock: Number(product.stock || 0), min_stock: Number(product.minStock || 10), active: true }).select('id, supplier_id').single();
-        if (createProductError) { notify('Não foi possível registrar o produto antes do contrato: ' + createProductError.message, 'error'); return false; }
-        productId = Number(createdProduct.id);
-        supplierId = createdProduct.supplier_id ?? supplierRow.id;
-      }
-      contract.productId = productId;
-      const payload = { product_id: productId, supplier_id: supplierId, ordered_quantity: contract.ordered, unit_price: contract.unitValue, contract_date: contract.contractDate || null, note: contract.note, created_by: session?.user?.id || null, updated_at: new Date().toISOString() };
+      const productId = Number(product.id);
+      const payload = { product_id: productId, supplier_id: product.supplier_id || null, ordered_quantity: contract.ordered, unit_price: contract.unitValue, contract_date: contract.contractDate || null, note: contract.note, created_by: session?.user?.id || null, updated_at: new Date().toISOString() };
       const existingContract = await supabase.from('balance_contracts').select('id').eq('product_id', productId).maybeSingle();
       let row;
       if (existingContract.data) {
