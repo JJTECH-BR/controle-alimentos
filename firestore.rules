@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAllowedUser() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/allowed_users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/allowed_users/$(request.auth.uid)).data.active == true;
+    }
+
+    match /{collectionName}/{document=**} {
+      allow read, write: if isAllowedUser() && collectionName in [
+        'products', 'categories', 'suppliers', 'stock_movements',
+        'balance_movements', 'orders', 'receipts', 'balance_contracts',
+        'audit_logs', 'system'
+      ];
+    }
+
+    match /movement_attachments/{attachmentId} {
+      allow read, delete: if isAllowedUser();
+      allow create, update: if isAllowedUser()
+        && request.resource.data.fileData is string
+        && request.resource.data.fileData.size() <= 960000
+        && request.resource.data.size is int
+        && request.resource.data.size <= 716800
+        && request.resource.data.content_type is string
+        && request.resource.data.content_type.matches('application/pdf|image/.*');
+    }
+
+    match /allowed_users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+  }
+}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
-import { isSupabaseConfigured, supabase } from './supabase';
+import { isFirebaseConfigured, firebaseCompat as firebase } from './firebase';
 
 export default function ProductActions({ product, onMove, onProductChange, onAudit }) {
     const [editing, setEditing] = useState(false);
@@ -20,7 +20,7 @@ export default function ProductActions({ product, onMove, onProductChange, onAud
     const save = async () => {
         if (!form.name.trim()) return;
         setBusy(true);
-        if (!isSupabaseConfigured) {
+        if (!isFirebaseConfigured) {
             await onProductChange({
                 id: product.id,
                 name: form.name.trim().toUpperCase(),
@@ -34,11 +34,11 @@ export default function ProductActions({ product, onMove, onProductChange, onAud
             setEditing(false);
             return;
         }
-        const { data: category, error: categoryError } = await supabase.from('categories').upsert({ name: form.category.trim() || 'Sem categoria' }, { onConflict: 'name' }).select('id').single();
+        const { data: category, error: categoryError } = await firebase.from('categories').upsert({ name: form.category.trim() || 'Sem categoria' }, { onConflict: 'name' }).select('id').single();
         if (categoryError) { setBusy(false); setFeedback(`Não foi possível salvar a categoria: ${categoryError.message}`); return; }
-        const { data: supplier, error: supplierError } = await supabase.from('suppliers').upsert({ name: form.supplier.trim() || 'Sem fornecedor' }, { onConflict: 'name' }).select('id').single();
+        const { data: supplier, error: supplierError } = await firebase.from('suppliers').upsert({ name: form.supplier.trim() || 'Sem fornecedor' }, { onConflict: 'name' }).select('id').single();
         if (supplierError) { setBusy(false); setFeedback(`Não foi possível salvar o fornecedor: ${supplierError.message}`); return; }
-        const { error } = await supabase.from('products').update({ name: form.name.trim().toUpperCase(), category_id: category.id, supplier_id: supplier.id, unit: form.unit.trim() || 'kg', min_stock: Number(form.minStock || 0), updated_at: new Date().toISOString() }).eq('id', product.id);
+        const { error } = await firebase.from('products').update({ name: form.name.trim().toUpperCase(), category_id: category.id, supplier_id: supplier.id, unit: form.unit.trim() || 'kg', min_stock: Number(form.minStock || 0), updated_at: new Date().toISOString() }).eq('id', product.id);
         setBusy(false);
         if (error) { setFeedback(`Não foi possível editar o produto: ${error.message}`); return; }
         setEditing(false);
@@ -48,14 +48,14 @@ export default function ProductActions({ product, onMove, onProductChange, onAud
 
     const remove = async () => {
         if (!confirming) { setConfirming(true); return; }
-        if (!isSupabaseConfigured) {
+        if (!isFirebaseConfigured) {
             setConfirming(false);
             await onAudit?.('Excluiu produto', 'produto', product.id, product.name);
             await onProductChange(product.id);
             return;
         }
         setBusy(true);
-        const { error } = await supabase.from('products').update({ active: false, updated_at: new Date().toISOString() }).eq('id', product.id);
+        const { error } = await firebase.from('products').update({ active: false, updated_at: new Date().toISOString() }).eq('id', product.id);
         setBusy(false);
         if (error) { setFeedback(`Não foi possível excluir o produto: ${error.message}`); return; }
         setConfirming(false);

@@ -1,6 +1,6 @@
-export async function persistMovement({ supabase, product, form, userId, performedBy }) {
-    if (supabase) {
-        const syncedProduct = await ensureProductInSupabase(supabase, product);
+export async function persistMovement({ firebase, product, form, userId, performedBy }) {
+    if (firebase) {
+        const syncedProduct = await ensureProductInFirebase(firebase, product);
         if (syncedProduct.error) return { error: syncedProduct.error };
         product = { ...product, ...syncedProduct.product, supplier: syncedProduct.product.suppliers?.name || product.supplier };
     }
@@ -29,15 +29,14 @@ export async function persistMovement({ supabase, product, form, userId, perform
         attachment: form.attachment ? { name: form.attachment.name, type: form.attachment.type, size: form.attachment.size } : null
     };
 
-    if (supabase) {
+    if (firebase) {
         if (form.attachment instanceof File) {
-            const uploaded = await uploadAttachment(supabase, movement.id, form.attachment);
-            if (uploaded.error && !uploaded.bucketMissing) return { error: uploaded.error };
-            if (uploaded.bucketMissing) movement.attachmentWarning = uploaded.error;
+            const uploaded = await uploadAttachment(firebase, movement.id, form.attachment);
+            if (uploaded.error) return { error: uploaded.error };
             movement.attachmentPath = uploaded.path;
             movement.attachmentUrl = uploaded.url;
         }
-        const { data, error } = await supabase.rpc('register_stock_movement', {
+        const { data, error } = await firebase.rpc('register_stock_movement', {
             p_movement_id: movement.id,
             p_product_id: product.id,
             p_type: form.type,
@@ -49,16 +48,19 @@ export async function persistMovement({ supabase, product, form, userId, perform
             p_user_id: userId || null,
             p_performed_by: performedBy || 'Autor não informado'
         });
-        if (error && !isMissingMovementFunction(error)) return { error: error.message };
-        if (error) return persistMovementDirectly(supabase, movement, product, nextStock, userId, performedBy);
+        if (error && !isMissingMovementFunction(error)) {
+            if (movement.attachmentPath) await firebase.attachments.from('movement-attachments').remove([movement.attachmentPath]);
+            return { error: error.message };
+        }
+        if (error) return persistMovementDirectly(firebase, movement, product, nextStock, userId, performedBy);
         const result = Array.isArray(data) ? data[0] : data;
-        if (!result) return { error: 'O Supabase não retornou o resultado da movimentação.' };
+        if (!result) return { error: 'O Firebase não retornou o resultado da movimentação.' };
         if (movement.attachmentPath) {
-            const { error: attachmentError } = await supabase.from('stock_movements').update({ attachment_path: movement.attachmentPath, attachment_name: movement.attachment.name }).eq('id', movement.id);
+            const { error: attachmentError } = await firebase.from('stock_movements').update({ attachment_path: movement.attachmentPath, attachment_name: movement.attachment.name }).eq('id', movement.id);
             if (attachmentError) {
                 const metadataMissing = /attachment_(path|name)|schema cache|column .* does not exist/i.test(attachmentError.message || '');
                 if (!metadataMissing) return { error: `Movimentação salva, mas o anexo não pôde ser vinculado: ${attachmentError.message}` };
-                movement.attachmentWarning = 'Movimentação salva. O PDF foi enviado, mas execute novamente o supabase-schema.sql para vinculá-lo ao histórico.';
+                movement.attachmentWarning = `Movimentação salva, mas o anexo não pôde ser vinculado: ${attachmentError.message}`;
             }
         }
         movement.delta = Number(result.new_stock) - Number(result.previous_stock);
@@ -68,31 +70,28 @@ export async function persistMovement({ supabase, product, form, userId, perform
     return { movement, nextStock };
 }
 
-async function uploadAttachment(supabase, movementId, file) {
+async function uploadAttachment(firebase, movementId, file) {
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]+/g, '_');
     const path = `${movementId}/${safeName}`;
-    const { error } = await supabase.storage.from('movement-attachments').upload(path, file, { contentType: file.type, upsert: false });
-    if (error) {
-        const bucketMissing = /bucket not found|not found/i.test(error.message || '');
-        return { error: bucketMissing ? 'Movimentação salva, mas o anexo não foi enviado porque o bucket movement-attachments ainda não existe no Supabase.' : `Não foi possível enviar o anexo: ${error.message}`, bucketMissing };
-    }
-    const { data } = await supabase.storage.from('movement-attachments').createSignedUrl(path, 3600);
+    const { error } = await firebase.attachments.from('movement-attachments').upload(path, file, { contentType: file.type, upsert: false });
+    if (error) return { error: `Não foi possível salvar o anexo no Firestore: ${error.message}` };
+    const { data } = await firebase.attachments.from('movement-attachments').createSignedUrl(path);
     return { path, url: data?.signedUrl || '' };
 }
 
-export async function deleteMovementAttachment(supabase, movement) {
+export async function deleteMovementAttachment(firebase, movement) {
     if (!movement.attachmentPath) return { error: 'Este registro não possui um anexo salvo.' };
-    const { error: storageError } = await supabase.storage.from('movement-attachments').remove([movement.attachmentPath]);
+    const { error: storageError } = await firebase.attachments.from('movement-attachments').remove([movement.attachmentPath]);
     if (storageError) return { error: `Não foi possível excluir o arquivo: ${storageError.message}` };
-    const { error } = await supabase.from('stock_movements').update({ attachment_path: null, attachment_name: null }).eq('id', movement.id);
+    const { error } = await firebase.from(movement.sourceCollection || 'stock_movements').update({ attachment_path: null, attachment_name: null }).eq('id', movement.id);
     return error ? { error: error.message } : { success: true };
 }
 
-async function ensureProductInSupabase(supabase, product) {
+async function ensureProductInFirebase(firebase, product) {
     const supplierName = product.supplier || 'Sem fornecedor';
-    const { data: supplier, error: supplierError } = await supabase.from('suppliers').upsert({ name: supplierName }, { onConflict: 'name' }).select('id').single();
+    const { data: supplier, error: supplierError } = await firebase.from('suppliers').upsert({ name: supplierName }, { onConflict: 'name' }).select('id').single();
     if (supplierError) return { error: `Não foi possível salvar o fornecedor: ${supplierError.message}` };
-    const { data: existing, error: lookupError } = await supabase
+    const { data: existing, error: lookupError } = await firebase
         .from('products')
         .select('id, stock, unit, suppliers(name)')
         .eq('name', product.name)
@@ -102,9 +101,9 @@ async function ensureProductInSupabase(supabase, product) {
     if (existing) return { product: existing };
 
     const categoryName = product.category || 'Sem categoria';
-    const { data: category, error: categoryError } = await supabase.from('categories').upsert({ name: categoryName }, { onConflict: 'name' }).select('id').single();
+    const { data: category, error: categoryError } = await firebase.from('categories').upsert({ name: categoryName }, { onConflict: 'name' }).select('id').single();
     if (categoryError) return { error: `Não foi possível salvar a categoria: ${categoryError.message}` };
-    const { data: created, error: createError } = await supabase.from('products').insert({ name: product.name, category_id: category.id, supplier_id: supplier.id, unit: product.unit || 'kg', stock: Number(product.stock || 0), min_stock: Number(product.minStock || 10), active: true }).select('id, stock, unit, suppliers(name)').single();
+    const { data: created, error: createError } = await firebase.from('products').insert({ name: product.name, category_id: category.id, supplier_id: supplier.id, unit: product.unit || 'kg', stock: Number(product.stock || 0), min_stock: Number(product.minStock || 10), active: true }).select('id, stock, unit, suppliers(name)').single();
     return createError ? { error: `Não foi possível sincronizar o produto: ${createError.message}` } : { product: created };
 }
 
@@ -112,16 +111,16 @@ function isMissingMovementFunction(error) {
     return error.code === 'PGRST202' || error.code === '42883' || /could not find the function|function .* does not exist/i.test(error.message || '');
 }
 
-async function persistMovementDirectly(supabase, movement, product, nextStock, userId, performedBy) {
-    const { error: updateError } = await supabase.from('products').update({ stock: nextStock, updated_at: new Date().toISOString() }).eq('id', product.id);
+async function persistMovementDirectly(firebase, movement, product, nextStock, userId, performedBy) {
+    const { error: updateError } = await firebase.from('products').update({ stock: nextStock, updated_at: new Date().toISOString() }).eq('id', product.id);
     if (updateError) return { error: updateError.message };
     const movementRow = { id: movement.id, product_id: product.id, type: movement.type, quantity: movement.quantity, previous_stock: Number(product.stock || 0), new_stock: nextStock, movement_date: movement.date, note: movement.note, unit_price: movement.unitValue, document_number: movement.document, attachment_path: movement.attachmentPath || null, attachment_name: movement.attachment?.name || null, user_id: userId || null, performed_by: performedBy || 'Autor não informado' };
-    let { error: insertError } = await supabase.from('stock_movements').insert(movementRow);
+    let { error: insertError } = await firebase.from('stock_movements').insert(movementRow);
     if (insertError && isAttachmentSchemaError(insertError)) {
         const { attachment_path, attachment_name, ...legacyMovementRow } = movementRow;
-        const retry = await supabase.from('stock_movements').insert(legacyMovementRow);
+        const retry = await firebase.from('stock_movements').insert(legacyMovementRow);
         insertError = retry.error;
-        if (!insertError) movement.attachmentWarning = 'Movimentação salva. Execute o supabase-schema.sql para habilitar a visualização do anexo no histórico.';
+        if (!insertError) movement.attachmentWarning = 'Movimentação salva. O anexo foi enviado, mas não pôde ser vinculado ao histórico.';
     }
     if (insertError) return { error: insertError.message };
     return { movement, nextStock };
