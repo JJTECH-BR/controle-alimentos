@@ -18,56 +18,58 @@ export default function ProductActions({ product, onMove, onProductChange, onAud
     const change = (key, value) => setForm(current => ({ ...current, [key]: value }));
 
     const save = async () => {
-        if (!form.name.trim()) return;
+        if (!form.name.trim()) { setFeedback('Informe o nome do produto.'); return; }
         setBusy(true);
-        if (!isFirebaseConfigured) {
-            await onProductChange({
-                id: product.id,
-                name: form.name.trim().toUpperCase(),
-                category: form.category.trim() || 'Sem categoria',
-                supplier: form.supplier.trim() || 'Sem fornecedor',
-                unit: form.unit.trim() || 'kg',
-                minStock: Number(form.minStock || 0)
-            });
-            await onAudit?.('Alterou produto', 'produto', product.id, `${product.name} → ${form.name.trim().toUpperCase()}`);
-            setBusy(false);
+        const updatedProduct = {
+            id: product.id,
+            name: form.name.trim().toUpperCase(),
+            category: form.category.trim() || 'Sem categoria',
+            supplier: form.supplier.trim() || 'Sem fornecedor',
+            unit: form.unit.trim() || 'kg',
+            minStock: Number(form.minStock || 0)
+        };
+        try {
+            if (isFirebaseConfigured) {
+                const { data: category, error: categoryError } = await firebase.from('categories').upsert({ name: updatedProduct.category }, { onConflict: 'name' }).select('id').single();
+                if (categoryError) throw new Error(`Não foi possível salvar a categoria: ${categoryError.message}`);
+                const { data: supplier, error: supplierError } = await firebase.from('suppliers').upsert({ name: updatedProduct.supplier }, { onConflict: 'name' }).select('id').single();
+                if (supplierError) throw new Error(`Não foi possível salvar o fornecedor: ${supplierError.message}`);
+                const { error } = await firebase.from('products').update({ name: updatedProduct.name, category_id: category.id, supplier_id: supplier.id, unit: updatedProduct.unit, min_stock: updatedProduct.minStock, updated_at: new Date().toISOString() }).eq('id', product.id);
+                if (error) throw new Error(`Não foi possível editar o produto: ${error.message}`);
+            }
+            await onAudit?.('Alterou produto', 'produto', product.id, `${product.name} → ${updatedProduct.name}`);
+            await onProductChange({ id: product.id, product: updatedProduct, previousProduct: product });
             setEditing(false);
-            return;
+        } catch (error) {
+            setFeedback(error.message || 'Não foi possível editar o produto.');
+        } finally {
+            setBusy(false);
         }
-        const { data: category, error: categoryError } = await firebase.from('categories').upsert({ name: form.category.trim() || 'Sem categoria' }, { onConflict: 'name' }).select('id').single();
-        if (categoryError) { setBusy(false); setFeedback(`Não foi possível salvar a categoria: ${categoryError.message}`); return; }
-        const { data: supplier, error: supplierError } = await firebase.from('suppliers').upsert({ name: form.supplier.trim() || 'Sem fornecedor' }, { onConflict: 'name' }).select('id').single();
-        if (supplierError) { setBusy(false); setFeedback(`Não foi possível salvar o fornecedor: ${supplierError.message}`); return; }
-        const { error } = await firebase.from('products').update({ name: form.name.trim().toUpperCase(), category_id: category.id, supplier_id: supplier.id, unit: form.unit.trim() || 'kg', min_stock: Number(form.minStock || 0), updated_at: new Date().toISOString() }).eq('id', product.id);
-        setBusy(false);
-        if (error) { setFeedback(`Não foi possível editar o produto: ${error.message}`); return; }
-        setEditing(false);
-        await onAudit?.('Alterou produto', 'produto', product.id, `${product.name} → ${form.name.trim().toUpperCase()}`);
-        await onProductChange();
     };
 
     const remove = async () => {
         if (!confirming) { setConfirming(true); return; }
-        if (!isFirebaseConfigured) {
-            setConfirming(false);
-            await onAudit?.('Excluiu produto', 'produto', product.id, product.name);
-            await onProductChange(product.id);
-            return;
-        }
         setBusy(true);
-        const { error } = await firebase.from('products').update({ active: false, updated_at: new Date().toISOString() }).eq('id', product.id);
-        setBusy(false);
-        if (error) { setFeedback(`Não foi possível excluir o produto: ${error.message}`); return; }
-        setConfirming(false);
-        await onAudit?.('Excluiu produto', 'produto', product.id, product.name);
-        await onProductChange();
+        try {
+            if (isFirebaseConfigured) {
+                const { error } = await firebase.from('products').update({ active: false, updated_at: new Date().toISOString() }).eq('id', product.id);
+                if (error) throw new Error(`Não foi possível excluir o produto: ${error.message}`);
+            }
+            await onAudit?.('Excluiu produto', 'produto', product.id, product.name);
+            await onProductChange({ id: product.id, deleted: true });
+            setConfirming(false);
+        } catch (error) {
+            setFeedback(error.message || 'Não foi possível excluir o produto.');
+        } finally {
+            setBusy(false);
+        }
     };
 
     return <>
         <div className="actions">
             {Number(product.stock || 0) > 0 && <button onClick={() => onMove('saida', product.id)}>Registrar consumo</button>}
-            <button className="actionEdit" onClick={() => setEditing(true)} disabled={busy} title="Editar produto" aria-label={`Editar ${product.name}`}><Pencil size={15} /></button>
-            <button className="actionDelete" onClick={remove} disabled={busy} title="Excluir produto" aria-label={`Excluir ${product.name}`}><Trash2 size={15} /></button>
+            <button type="button" className="actionEdit" onClick={() => { setForm({ name: product.name, category: product.category || '', supplier: product.supplier || '', unit: product.unit || 'kg', minStock: product.minStock ?? 10 }); setFeedback(''); setEditing(true); }} disabled={busy} title="Editar produto" aria-label={`Editar ${product.name}`}><Pencil size={15} /></button>
+            <button type="button" className="actionDelete" onClick={() => { setFeedback(''); remove(); }} disabled={busy} title="Excluir produto" aria-label={`Excluir ${product.name}`}><Trash2 size={15} /></button>
         </div>
         {editing && <div className="overlay">
             <div className="modal productEditModal">
@@ -85,7 +87,8 @@ export default function ProductActions({ product, onMove, onProductChange, onAud
             <div className="modal confirmModal">
                 <h2>Excluir produto?</h2>
                 <p>O produto <strong>{product.name}</strong> será removido das telas. O histórico de movimentações será preservado.</p>
-                <div className="confirmActions"><button className="secondary" onClick={() => setConfirming(false)}>Cancelar</button><button className="danger" onClick={remove} disabled={busy}>{busy ? 'Excluindo…' : 'Sim, excluir'}</button></div>
+                {feedback && <div className="inlineAlert">{feedback}</div>}
+                <div className="confirmActions"><button type="button" className="secondary" onClick={() => { setConfirming(false); setFeedback(''); }} disabled={busy}>Cancelar</button><button type="button" className="danger" onClick={remove} disabled={busy}>{busy ? 'Excluindo…' : 'Sim, excluir'}</button></div>
             </div>
         </div>}
     </>;
